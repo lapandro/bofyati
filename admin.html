@@ -23,14 +23,22 @@
     .order small {
       color: #555;
     }
+    .debug {
+      background: #eee;
+      font-size: 13px;
+      padding: 5px;
+      border: 1px dashed #aaa;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
   <h2>📊 لوحة تحكم الطلبات</h2>
-  <div id="orderList"></div>  <script type="module">
+  <div id="orderList"></div>
+  <div id="debug" class="debug"></div>  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, get, child } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
+    import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCpzv_M6usu-XNpq7QV6uakYTz_nwlri9g",
@@ -47,10 +55,12 @@
     const db = getDatabase(app);
 
     let currentVendorId = null;
+    const debugBox = document.getElementById("debug");
 
     onAuthStateChanged(auth, user => {
       if (user) {
         currentVendorId = user.uid;
+        debugLog("✅ تسجيل دخول كمدير: " + currentVendorId);
         loadOrders();
       } else {
         alert("❌ يجب تسجيل الدخول أولاً كصاحب بوفية");
@@ -60,25 +70,19 @@
 
     function loadOrders() {
       const ordersRef = ref(db, "orders");
-      const vendorNameMap = {};
-
-      get(ref(db, "vendors")).then(vSnap => {
-        vSnap.forEach(child => {
-          vendorNameMap[child.key] = child.val().name;
-        });
-      });
-
       onValue(ordersRef, snapshot => {
         const orderList = document.getElementById("orderList");
         orderList.innerHTML = "";
+        let found = false;
 
         snapshot.forEach(userSnap => {
           const uid = userSnap.key;
-
           userSnap.forEach(orderSnap => {
             const order = orderSnap.val();
+            debugLog(`📦 فحص طلب من المستخدم ${uid} للبوفية ${order.vendor}`);
 
             if (order.vendor === currentVendorId) {
+              found = true;
               const div = document.createElement("div");
               div.className = "order";
               div.innerHTML = `
@@ -91,7 +95,17 @@
             }
           });
         });
+
+        if (!found) {
+          orderList.innerHTML = "<p>🚫 لا توجد طلبات موجهة إلى هذه البوفية.</p>";
+        }
       });
+    }
+
+    function debugLog(msg) {
+      const line = document.createElement("div");
+      line.textContent = msg;
+      debugBox.appendChild(line);
     }
   </script></body>
 </html>
