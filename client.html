@@ -1,0 +1,168 @@
+<!DOCTYPE html><html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>واجهة الزبون - Bofyati</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      direction: rtl;
+      background-color: #fff5e1;
+      padding: 20px;
+    }
+    h2 {
+      color: #d35400;
+    }
+    label, select, input, textarea, button {
+      width: 100%;
+      margin: 8px 0;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    .menu-item {
+      display: flex;
+      align-items: center;
+      margin: 5px 0;
+    }
+    .menu-item input {
+      width: auto;
+      margin-left: 10px;
+    }
+    .order {
+      background: #f8e0b0;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🍽️ اختر البوفية</h2>
+  <select id="vendorSelect"></select>  <h2>📋 قائمة الأطعمة</h2>
+  <div id="menuList"></div>  <h2>✍️ أو اكتب طلبك يدويًا</h2>
+  <textarea id="customNote" placeholder="مثلاً: شاي حليب بدون سكر"></textarea><button onclick="sendOrder()">📤 إرسال الطلب</button>
+
+  <hr>
+  <h2>📦 طلباتك السابقة</h2>
+  <div id="orders"></div>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+    import { getDatabase, ref, get, push, onChildAdded } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCpzv_M6usu-XNpq7QV6uakYTz_nwlri9g",
+      authDomain: "bofyati.firebaseapp.com",
+      databaseURL: "https://bofyati-default-rtdb.firebaseio.com",
+      projectId: "bofyati",
+      storageBucket: "bofyati.appspot.com",
+      messagingSenderId: "233508338562",
+      appId: "1:233508338562:web:e32efb8e391eb7dcd42d9b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    let currentUserId = null;
+    let selectedVendorId = null;
+
+    const vendorSelect = document.getElementById("vendorSelect");
+    const menuList = document.getElementById("menuList");
+    const ordersDiv = document.getElementById("orders");
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUserId = user.uid;
+        loadVendors();
+        loadOrders();
+      } else {
+        alert("❌ لم يتم تسجيل الدخول، سيتم توجيهك للصفحة الرئيسية");
+        window.location.href = "index.html";
+      }
+    });
+
+    function loadVendors() {
+      get(ref(db, "vendors"))
+        .then(snapshot => {
+          vendorSelect.innerHTML = '<option disabled selected>اختر بوفية</option>';
+          snapshot.forEach(child => {
+            const id = child.key;
+            const name = child.val().name;
+            const option = document.createElement("option");
+            option.value = id;
+            option.textContent = name;
+            vendorSelect.appendChild(option);
+          });
+        });
+    }
+
+    vendorSelect.addEventListener("change", () => {
+      selectedVendorId = vendorSelect.value;
+      loadMenu(selectedVendorId);
+    });
+
+    function loadMenu(vendorId) {
+      menuList.innerHTML = "";
+      get(ref(db, `menus/${vendorId}`))
+        .then(snapshot => {
+          if (snapshot.exists()) {
+            const items = snapshot.val();
+            Object.keys(items).forEach(key => {
+              const div = document.createElement("div");
+              div.className = "menu-item";
+              div.innerHTML = `
+                <label><input type="checkbox" value="${items[key]}"> ${items[key]}</label>
+              `;
+              menuList.appendChild(div);
+            });
+          } else {
+            menuList.innerHTML = "<p>🚫 لا توجد قائمة طعام لهذه البوفية.</p>";
+          }
+        });
+    }
+
+    function sendOrder() {
+      const selectedItems = Array.from(menuList.querySelectorAll("input[type=checkbox]:checked"))
+        .map(input => input.value);
+
+      const customNote = document.getElementById("customNote").value;
+
+      if (!selectedVendorId) {
+        alert("❗ الرجاء اختيار بوفية أولا");
+        return;
+      }
+
+      if (selectedItems.length === 0 && !customNote.trim()) {
+        alert("❗ الرجاء اختيار صنف أو كتابة ملاحظة الطلب");
+        return;
+      }
+
+      push(ref(db, `orders/${currentUserId}`), {
+        vendor: selectedVendorId,
+        items: selectedItems,
+        customNote: customNote,
+        time: Date.now()
+      }).then(() => {
+        alert("✅ تم إرسال الطلب بنجاح");
+        document.getElementById("customNote").value = "";
+        menuList.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
+      });
+    }
+
+    function loadOrders() {
+      const ordersRef = ref(db, `orders/${currentUserId}`);
+      onChildAdded(ordersRef, (snapshot) => {
+        const order = snapshot.val();
+        const box = document.createElement("div");
+        box.className = "order";
+        box.innerHTML = `
+          🏪 <strong>بوفية:</strong> ${order.vendor}<br>
+          🍱 <strong>الأصناف:</strong> ${order.items?.join(", ") || "-"}<br>
+          📝 <strong>ملاحظات:</strong> ${order.customNote || "-"}<br>
+          ⏰ <small>${new Date(order.time).toLocaleString()}</small>
+        `;
+        ordersDiv.prepend(box);
+      });
+    }
+  </script></body>
+</html>
