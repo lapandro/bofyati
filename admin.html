@@ -1,0 +1,97 @@
+<!DOCTYPE html><html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>لوحة تحكم البوفية - Bofyati</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      direction: rtl;
+      background-color: #fdfdfd;
+      padding: 20px;
+    }
+    h2 {
+      color: #c0392b;
+    }
+    .order {
+      background: #fce4d6;
+      border-right: 5px solid #e67e22;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 6px;
+    }
+    .order small {
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h2>📊 لوحة تحكم الطلبات</h2>
+  <div id="orderList"></div>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+    import { getDatabase, ref, onValue, get, child } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCpzv_M6usu-XNpq7QV6uakYTz_nwlri9g",
+      authDomain: "bofyati.firebaseapp.com",
+      databaseURL: "https://bofyati-default-rtdb.firebaseio.com",
+      projectId: "bofyati",
+      storageBucket: "bofyati.appspot.com",
+      messagingSenderId: "233508338562",
+      appId: "1:233508338562:web:e32efb8e391eb7dcd42d9b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    let currentVendorId = null;
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentVendorId = user.uid;
+        loadOrders();
+      } else {
+        alert("❌ يجب تسجيل الدخول أولاً كصاحب بوفية");
+        window.location.href = "index.html";
+      }
+    });
+
+    function loadOrders() {
+      const ordersRef = ref(db, "orders");
+      const vendorNameMap = {};
+
+      get(ref(db, "vendors")).then(vSnap => {
+        vSnap.forEach(child => {
+          vendorNameMap[child.key] = child.val().name;
+        });
+      });
+
+      onValue(ordersRef, snapshot => {
+        const orderList = document.getElementById("orderList");
+        orderList.innerHTML = "";
+
+        snapshot.forEach(userSnap => {
+          const uid = userSnap.key;
+
+          userSnap.forEach(orderSnap => {
+            const order = orderSnap.val();
+
+            if (order.vendor === currentVendorId) {
+              const div = document.createElement("div");
+              div.className = "order";
+              div.innerHTML = `
+                👤 <strong>الزبون:</strong> ${uid}<br>
+                🍱 <strong>الأصناف:</strong> ${order.items?.join(", ") || "-"}<br>
+                📝 <strong>ملاحظات:</strong> ${order.customNote || "-"}<br>
+                ⏰ <small>${new Date(order.time).toLocaleString()}</small>
+              `;
+              orderList.prepend(div);
+            }
+          });
+        });
+      });
+    }
+  </script></body>
+</html>
