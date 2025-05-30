@@ -121,7 +121,7 @@
         });
     }
 
-    function sendOrder() {
+    window.sendOrder = function () {
       const selectedItems = Array.from(menuList.querySelectorAll("input[type=checkbox]:checked"))
         .map(input => input.value);
 
@@ -146,6 +146,8 @@
         alert("✅ تم إرسال الطلب بنجاح");
         document.getElementById("customNote").value = "";
         menuList.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
+      }).catch(err => {
+        alert("❌ حدث خطأ أثناء إرسال الطلب: " + err.message);
       });
     }
 
