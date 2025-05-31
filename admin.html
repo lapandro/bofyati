@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="ar">
+<!DOCTYPE html>
+<html lang="ar">
 <head>
   <meta charset="UTF-8">
   <title>لوحة تحكم البوفية - Bofyati</title>
@@ -38,13 +39,13 @@
       border: none;
       cursor: pointer;
     }
-    .order {
+   .order {
       background: #f1f1f1;
       padding: 10px;
       margin: 10px 0;
       border-radius: 5px;
     }
-    .stats {
+   .stats {
       background: #fef4e5;
       padding: 10px;
       margin: 10px 0;
@@ -54,21 +55,26 @@
   </style>
 </head>
 <body>
-  <h2>📊 لوحة تحكم الطلبات</h2>  <div class="stats">
+  <h2>📊 لوحة تحكم الطلبات</h2>
+  <div class="stats">
     <p>📦 عدد الطلبات: <span id="totalOrders">0</span></p>
     <p>💰 إجمالي المبيعات: <span id="totalRevenue">0</span> ريال</p>
     <label>من: <input type="date" id="dateFrom" /></label>
     <label>إلى: <input type="date" id="dateTo" /></label>
     <button onclick="loadOrders()">🔍 تصفية</button>
-  </div>  <h3>📦 الطلبات الواردة</h3>
+  </div>
+  <h3>📦 الطلبات الواردة</h3>
   <button onclick="printOrders()">🖨️ طباعة الطلبات PDF</button>
-  <div id="orderList"></div>  <h3>📋 إجماليات حسب الزبائن</h3>
-  <div id="summaryTable"></div>  <hr>
+  <div id="orderList"></div>
+  <h3>📋 إجماليات حسب الزبائن</h3>
+  <div id="summaryTable"></div>
+  <hr>
   <h3>➕ إضافة صنف جديد</h3>
   <input type="text" id="newName" placeholder="اسم الصنف" />
   <input type="number" id="newPrice" placeholder="السعر بالريال" />
   <input type="text" id="newUnit" placeholder="الوحدة (مثلاً: حبة)" />
-  <button onclick="addMenuItem()">إضافة إلى القائمة</button>  <h3>📋 قائمة الطعام</h3>
+  <button onclick="addMenuItem()">إضافة إلى القائمة</button>
+  <h3>📋 قائمة الطعام</h3>
   <table>
     <thead>
       <tr>
@@ -80,7 +86,8 @@
       </tr>
     </thead>
     <tbody id="menuTable"></tbody>
-  </table><audio id="notifSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
+  </table>
+  <audio id="notifSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
@@ -126,8 +133,10 @@
         let newCount = 0;
         const summaries = {};
 
-        const from = new Date(document.getElementById("dateFrom").value || 0).getTime();
-        const to = new Date(document.getElementById("dateTo").value || Date.now()).getTime();
+        const from = new Date(document.getElementById("dateFrom").value |
+| 0).getTime();
+        const to = new Date(document.getElementById("dateTo").value |
+| Date.now()).getTime();
 
         snapshot.forEach(userSnap => {
           const uid = userSnap.key;
@@ -138,7 +147,7 @@
               orderCounter++;
               const div = document.createElement("div");
               div.className = "order";
-              const itemLines = (order.items || []).map(i => {
+              const itemLines = (order.items ||).map(i => {
                 totalRevenue += (i.price * i.quantity);
                 if (!summaries[uid]) summaries[uid] = { total: 0, count: 0 };
                 summaries[uid].total += i.price * i.quantity;
@@ -148,7 +157,8 @@
               div.innerHTML = `
                 👤 <strong>الزبون:</strong> ${uid}<br>
                 🍱 <strong>الأصناف:</strong><ul>${itemLines}</ul>
-                📝 <strong>ملاحظات:</strong> ${order.customNote || "-"}<br>
+                📝 <strong>ملاحظات:</strong> ${order.customNote |
+| "-"}<br>
                 ⏰ <small>${new Date(order.time).toLocaleString()}</small>
               `;
               orderList.prepend(div);
@@ -158,7 +168,6 @@
 
         document.getElementById("totalOrders").textContent = orderCounter;
         document.getElementById("totalRevenue").textContent = totalRevenue;
-
         const table = document.createElement("table");
         table.innerHTML = `<tr><th>الزبون</th><th>عدد الطلبات</th><th>الإجمالي</th></tr>`;
         Object.entries(summaries).forEach(([uid, sum]) => {
@@ -214,7 +223,8 @@
       const name = document.getElementById("newName").value.trim();
       const price = parseFloat(document.getElementById("newPrice").value);
       const unit = document.getElementById("newUnit").value.trim();
-      if (!name || isNaN(price) || !unit) {
+      if (!name |
+| isNaN(price) ||!unit) {
         alert("❗ يرجى ملء جميع الحقول بشكل صحيح");
         return;
       }
@@ -231,7 +241,8 @@
       const name = document.getElementById(`name-${key}`).value.trim();
       const price = parseFloat(document.getElementById(`price-${key}`).value);
       const unit = document.getElementById(`unit-${key}`).value.trim();
-      if (!name || isNaN(price) || !unit) {
+      if (!name |
+| isNaN(price) ||!unit) {
         alert("❗ يرجى التأكد من صحة البيانات");
         return;
       }
@@ -249,5 +260,6 @@
         });
       }
     }
-  </script></body>
+  </script>
+</body>
 </html>
