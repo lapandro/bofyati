@@ -13,34 +13,57 @@
     h2, h3 {
       color: #c0392b;
     }
-    .order, .menu-item {
-      background: #fce4d6;
-      border-right: 5px solid #e67e22;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 6px;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
     }
-    .order small {
-      color: #555;
+    table, th, td {
+      border: 1px solid #ddd;
     }
-    input, button {
+    th, td {
       padding: 8px;
-      margin: 4px 2px;
-      width: calc(100% - 12px);
-      box-sizing: border-box;
+      text-align: center;
+    }
+    input[type="text"], input[type="number"] {
+      width: 90%;
+      padding: 5px;
     }
     button {
-      width: auto;
+      padding: 6px 10px;
+      margin: 3px;
+      background-color: #e67e22;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .order {
+      background: #f1f1f1;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
     }
   </style>
 </head>
 <body>
-  <h2>📊 لوحة تحكم الطلبات</h2>
-  <div id="menuSection"></div>  <h3>➕ إضافة صنف جديد</h3>
+  <h2>📊 لوحة تحكم الطلبات</h2>  <h3>➕ إضافة صنف جديد</h3>
   <input type="text" id="newName" placeholder="اسم الصنف" />
   <input type="number" id="newPrice" placeholder="السعر بالريال" />
   <input type="text" id="newUnit" placeholder="الوحدة (مثلاً: حبة)" />
-  <button onclick="addMenuItem()">إضافة إلى القائمة</button>  <hr>
+  <button onclick="addMenuItem()">إضافة إلى القائمة</button>  <h3>📋 قائمة الطعام</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>الاسم</th>
+        <th>الوحدة</th>
+        <th>السعر</th>
+        <th>تحديث</th>
+        <th>حذف</th>
+      </tr>
+    </thead>
+    <tbody id="menuTable"></tbody>
+  </table>  <hr>
+  <h3>📦 الطلبات الواردة</h3>
   <div id="orderList"></div>  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
@@ -59,7 +82,6 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getDatabase(app);
-
     let currentVendorId = null;
 
     onAuthStateChanged(auth, user => {
@@ -102,26 +124,24 @@
     }
 
     function loadMyMenu() {
-      const menuSection = document.getElementById("menuSection");
-      menuSection.innerHTML = "<h3>📋 إدارة قائمة الطعام</h3>";
-
+      const menuTable = document.getElementById("menuTable");
+      menuTable.innerHTML = "";
       get(ref(db, `menus/${currentVendorId}`)).then(snapshot => {
         if (snapshot.exists()) {
           const items = snapshot.val();
           Object.entries(items).forEach(([key, item]) => {
-            const div = document.createElement("div");
-            div.className = "menu-item";
-            div.innerHTML = `
-              <input type="text" value="${item.name}" id="name-${key}" placeholder="الاسم" />
-              <input type="number" value="${item.price}" id="price-${key}" placeholder="السعر" />
-              <input type="text" value="${item.unit}" id="unit-${key}" placeholder="الوحدة" />
-              <button onclick="updateMenuItem('${key}')">💾 حفظ</button>
-              <button onclick="deleteMenuItem('${key}')">🗑️ حذف</button>
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td><input type="text" value="${item.name}" id="name-${key}" /></td>
+              <td><input type="text" value="${item.unit}" id="unit-${key}" /></td>
+              <td><input type="number" value="${item.price}" id="price-${key}" /></td>
+              <td><button onclick="updateMenuItem('${key}')">💾</button></td>
+              <td><button onclick="deleteMenuItem('${key}')">🗑️</button></td>
             `;
-            menuSection.appendChild(div);
+            menuTable.appendChild(row);
           });
         } else {
-          menuSection.innerHTML += "<p>🚫 لا توجد قائمة طعام مسجلة بعد.</p>";
+          menuTable.innerHTML = '<tr><td colspan="5">🚫 لا توجد قائمة طعام.</td></tr>';
         }
       });
     }
@@ -136,6 +156,9 @@
       }
       push(ref(db, `menus/${currentVendorId}`), { name, price, unit }).then(() => {
         alert("✅ تم إضافة الصنف");
+        document.getElementById("newName").value = "";
+        document.getElementById("newPrice").value = "";
+        document.getElementById("newUnit").value = "";
         loadMyMenu();
       });
     }
