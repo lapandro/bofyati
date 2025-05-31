@@ -3,6 +3,7 @@
   <meta charset="UTF-8">
   <title>لوحة تحكم البوفية - Bofyati</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -25,7 +26,7 @@
       padding: 8px;
       text-align: center;
     }
-    input[type="text"], input[type="number"] {
+    input[type="text"], input[type="number"], input[type="date"] {
       width: 90%;
       padding: 5px;
     }
@@ -43,10 +44,27 @@
       margin: 10px 0;
       border-radius: 5px;
     }
+    .stats {
+      background: #fef4e5;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #e67e22;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
-  <h2>📊 لوحة تحكم الطلبات</h2>  <h3>➕ إضافة صنف جديد</h3>
+  <h2>📊 لوحة تحكم الطلبات</h2>  <div class="stats">
+    <p>📦 عدد الطلبات: <span id="totalOrders">0</span></p>
+    <p>💰 إجمالي المبيعات: <span id="totalRevenue">0</span> ريال</p>
+    <label>من: <input type="date" id="dateFrom" /></label>
+    <label>إلى: <input type="date" id="dateTo" /></label>
+    <button onclick="loadOrders()">🔍 تصفية</button>
+  </div>  <h3>📦 الطلبات الواردة</h3>
+  <button onclick="printOrders()">🖨️ طباعة الطلبات PDF</button>
+  <div id="orderList"></div>  <h3>📋 إجماليات حسب الزبائن</h3>
+  <div id="summaryTable"></div>  <hr>
+  <h3>➕ إضافة صنف جديد</h3>
   <input type="text" id="newName" placeholder="اسم الصنف" />
   <input type="number" id="newPrice" placeholder="السعر بالريال" />
   <input type="text" id="newUnit" placeholder="الوحدة (مثلاً: حبة)" />
@@ -62,9 +80,9 @@
       </tr>
     </thead>
     <tbody id="menuTable"></tbody>
-  </table>  <hr>
-  <h3>📦 الطلبات الواردة</h3>
-  <div id="orderList"></div>  <script type="module">
+  </table><audio id="notifSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3" preload="auto"></audio>
+
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
     import { getDatabase, ref, onValue, get, push, update, remove } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
@@ -83,6 +101,7 @@
     const auth = getAuth(app);
     const db = getDatabase(app);
     let currentVendorId = null;
+    let previousCount = 0;
 
     onAuthStateChanged(auth, user => {
       if (user) {
@@ -99,20 +118,36 @@
       const ordersRef = ref(db, "orders");
       onValue(ordersRef, snapshot => {
         const orderList = document.getElementById("orderList");
+        const summaryTable = document.getElementById("summaryTable");
         orderList.innerHTML = "";
+        summaryTable.innerHTML = "";
+        let orderCounter = 0;
+        let totalRevenue = 0;
+        let newCount = 0;
+        const summaries = {};
+
+        const from = new Date(document.getElementById("dateFrom").value || 0).getTime();
+        const to = new Date(document.getElementById("dateTo").value || Date.now()).getTime();
+
         snapshot.forEach(userSnap => {
           const uid = userSnap.key;
           userSnap.forEach(orderSnap => {
             const order = orderSnap.val();
-            if (order.vendor === currentVendorId) {
+            if (order.vendor === currentVendorId && order.time >= from && order.time <= to) {
+              newCount++;
+              orderCounter++;
               const div = document.createElement("div");
               div.className = "order";
+              const itemLines = (order.items || []).map(i => {
+                totalRevenue += (i.price * i.quantity);
+                if (!summaries[uid]) summaries[uid] = { total: 0, count: 0 };
+                summaries[uid].total += i.price * i.quantity;
+                summaries[uid].count++;
+                return `<li>${i.name} × ${i.quantity} ${i.unit} - ${i.price} ريال</li>`;
+              }).join("");
               div.innerHTML = `
                 👤 <strong>الزبون:</strong> ${uid}<br>
-                🍱 <strong>الأصناف:</strong><br>
-                <ul>
-                  ${(order.items || []).map(i => `<li>${i.name} × ${i.quantity} ${i.unit} - ${i.price} ريال</li>`).join("")}
-                </ul>
+                🍱 <strong>الأصناف:</strong><ul>${itemLines}</ul>
                 📝 <strong>ملاحظات:</strong> ${order.customNote || "-"}<br>
                 ⏰ <small>${new Date(order.time).toLocaleString()}</small>
               `;
@@ -120,7 +155,36 @@
             }
           });
         });
+
+        document.getElementById("totalOrders").textContent = orderCounter;
+        document.getElementById("totalRevenue").textContent = totalRevenue;
+
+        const table = document.createElement("table");
+        table.innerHTML = `<tr><th>الزبون</th><th>عدد الطلبات</th><th>الإجمالي</th></tr>`;
+        Object.entries(summaries).forEach(([uid, sum]) => {
+          table.innerHTML += `<tr><td>${uid}</td><td>${sum.count}</td><td>${sum.total} ريال</td></tr>`;
+        });
+        summaryTable.appendChild(table);
+
+        if (newCount > previousCount) {
+          document.getElementById("notifSound").play();
+        }
+        previousCount = newCount;
       });
+    }
+
+    function printOrders() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      let y = 10;
+      doc.setFont("Arial");
+      doc.text("تقرير الطلبات - Bofyati", 105, y, { align: "center" });
+      y += 10;
+      document.querySelectorAll(".order").forEach(el => {
+        doc.text(el.textContent, 10, y, { maxWidth: 190 });
+        y += 40;
+      });
+      doc.save("orders-report.pdf");
     }
 
     function loadMyMenu() {
