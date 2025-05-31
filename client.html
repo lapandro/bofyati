@@ -13,17 +13,24 @@
     h2 {
       color: #d35400;
     }
-    label, select, input, textarea, button {
+    table {
       width: 100%;
-      margin: 8px 0;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    input[type="number"] {
+      width: 60px;
+    }
+    textarea, button, select {
+      width: 100%;
+      margin-top: 10px;
       padding: 10px;
       box-sizing: border-box;
-    }
-    .menu-item {
-      background: #f8e0b0;
-      border-radius: 5px;
-      padding: 10px;
-      margin-bottom: 10px;
     }
     .order {
       background: #f1f1f1;
@@ -36,7 +43,18 @@
 <body>
   <h2>🍽️ اختر البوفية</h2>
   <select id="vendorSelect"></select>  <h2>📋 قائمة الأطعمة</h2>
-  <div id="menuList"></div>  <h2>✍️ أو اكتب طلبك يدويًا</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>اختيار</th>
+        <th>الصنف</th>
+        <th>الوحدة</th>
+        <th>السعر</th>
+        <th>الكمية</th>
+      </tr>
+    </thead>
+    <tbody id="menuTable"></tbody>
+  </table>  <h2>✍️ أو اكتب طلبك يدويًا</h2>
   <textarea id="customNote" placeholder="مثلاً: شاي حليب بدون سكر"></textarea>
   <button onclick="sendOrder()">📤 إرسال الطلب</button>  <hr>
   <h2>📦 طلباتك السابقة</h2>
@@ -62,7 +80,7 @@
     let currentUserId = null;
     let selectedVendorId = null;
     const vendorSelect = document.getElementById("vendorSelect");
-    const menuList = document.getElementById("menuList");
+    const menuTable = document.getElementById("menuTable");
     const ordersDiv = document.getElementById("orders");
 
     onAuthStateChanged(auth, (user) => {
@@ -96,34 +114,35 @@
     });
 
     function loadMenu(vendorId) {
-      menuList.innerHTML = "";
+      menuTable.innerHTML = "";
       get(ref(db, `menus/${vendorId}`)).then(snapshot => {
         if (snapshot.exists()) {
           const items = snapshot.val();
           Object.entries(items).forEach(([key, item]) => {
-            const div = document.createElement("div");
-            div.className = "menu-item";
-            div.innerHTML = `
-              <label><input type="checkbox" data-key="${key}" data-name="${item.name}" data-price="${item.price}" data-unit="${item.unit}"> ${item.name}</label><br>
-              💵 السعر: ${item.price} ريال | 🧪 الوحدة: ${item.unit}<br>
-              🔢 العدد: <input type="number" min="1" value="1" data-qty="${key}" />
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td><input type="checkbox" data-key="${key}" data-name="${item.name}" data-price="${item.price}" data-unit="${item.unit}" /></td>
+              <td>${item.name}</td>
+              <td>${item.unit}</td>
+              <td>${item.price} ريال</td>
+              <td><input type="number" min="1" value="1" data-qty="${key}" /></td>
             `;
-            menuList.appendChild(div);
+            menuTable.appendChild(row);
           });
         } else {
-          menuList.innerHTML = "<p>🚫 لا توجد قائمة طعام لهذه البوفية.</p>";
+          menuTable.innerHTML = '<tr><td colspan="5">🚫 لا توجد قائمة طعام.</td></tr>';
         }
       });
     }
 
     window.sendOrder = function () {
-      const selectedItems = Array.from(menuList.querySelectorAll("input[type=checkbox]:checked"))
+      const selectedItems = Array.from(menuTable.querySelectorAll("input[type=checkbox]:checked"))
         .map(input => {
           const key = input.getAttribute("data-key");
           const name = input.getAttribute("data-name");
           const price = parseFloat(input.getAttribute("data-price"));
           const unit = input.getAttribute("data-unit");
-          const quantityInput = menuList.querySelector(`input[data-qty='${key}']`);
+          const quantityInput = menuTable.querySelector(`input[data-qty='${key}']`);
           const quantity = parseInt(quantityInput.value);
           return { name, price, unit, quantity };
         });
@@ -148,7 +167,7 @@
       }).then(() => {
         alert("✅ تم إرسال الطلب بنجاح");
         document.getElementById("customNote").value = "";
-        menuList.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
+        menuTable.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
       }).catch(err => {
         alert("❌ حدث خطأ أثناء إرسال الطلب: " + err.message);
       });
