@@ -26,7 +26,7 @@
       border: none;
       cursor: pointer;
     }
-   .hidden {
+  .hidden {
       display: none;
     }
   </style>
@@ -58,7 +58,7 @@
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
     import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
 
-    // تم توحيد تكوين Firebase ليتطابق مع مشروع bofyati
+    // تكوين Firebase لمشروع bofyati
     const firebaseConfig = {
       apiKey: "AIzaSyCpzv_M6usu-XNpq7QV6uakYTz_nwlri9g",
       authDomain: "bofyati.firebaseapp.com",
@@ -77,7 +77,7 @@
       const email = document.getElementById("loginEmail").value;
       const password = document.getElementById("loginPassword").value;
       signInWithEmailAndPassword(auth, email, password)
-       .then(user => {
+      .then(user => {
           const uid = user.user.uid;
           get(child(ref(db), `users/${uid}`)).then(snapshot => {
             if (snapshot.exists()) {
@@ -90,7 +90,7 @@
             }
           });
         })
-       .catch(e => alert("❌ فشل الدخول: " + e.message));
+      .catch(e => alert("❌ فشل الدخول: " + e.message));
     });
 
     document.getElementById("signupBtn").addEventListener("click", () => {
@@ -107,7 +107,7 @@
       }
 
       createUserWithEmailAndPassword(auth, email, password)
-       .then(user => {
+      .then(user => {
           const uid = user.user.uid;
           set(ref(db, `users/${uid}`), {
             name: name,
@@ -123,7 +123,7 @@
           alert("✅ تم إنشاء الحساب، يمكنك تسجيل الدخول الآن");
           toggleForms();
         })
-       .catch(e => alert("❌ فشل التسجيل: " + e.message));
+      .catch(e => alert("❌ فشل التسجيل: " + e.message));
     });
 
     window.toggleForms = function () {
