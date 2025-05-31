@@ -23,24 +23,23 @@
     .order small {
       color: #555;
     }
-    .debug {
-      background: #eee;
-      font-size: 13px;
-      padding: 5px;
-      border: 1px dashed #aaa;
-      margin-top: 10px;
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      box-sizing: border-box;
     }
   </style>
 </head>
 <body>
   <h2>📊 لوحة تحكم الطلبات</h2>
-  <div id="menuSection"></div>
-  <hr>
-  <div id="orderList"></div>
-  <div id="debug" class="debug"></div>  <script type="module">
+  <div id="menuSection"></div>  <h3>➕ إضافة صنف جديد</h3>
+  <input type="text" id="newItem" placeholder="مثلاً: عصير برتقال" />
+  <button onclick="addMenuItem()">إضافة إلى القائمة</button>  <hr>
+  <div id="orderList"></div>  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+    import { getDatabase, ref, onValue, get, push } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCpzv_M6usu-XNpq7QV6uakYTz_nwlri9g",
@@ -57,12 +56,10 @@
     const db = getDatabase(app);
 
     let currentVendorId = null;
-    const debugBox = document.getElementById("debug");
 
     onAuthStateChanged(auth, user => {
       if (user) {
         currentVendorId = user.uid;
-        debugLog("✅ تسجيل دخول كمدير: " + currentVendorId);
         loadOrders();
         loadMyMenu();
       } else {
@@ -82,7 +79,6 @@
           const uid = userSnap.key;
           userSnap.forEach(orderSnap => {
             const order = orderSnap.val();
-            debugLog(`📦 فحص طلب من المستخدم ${uid} للبوفية ${order.vendor}`);
 
             if (order.vendor === currentVendorId) {
               found = true;
@@ -124,10 +120,19 @@
       });
     }
 
-    function debugLog(msg) {
-      const line = document.createElement("div");
-      line.textContent = msg;
-      debugBox.appendChild(line);
+    window.addMenuItem = function () {
+      const newItemInput = document.getElementById("newItem");
+      const newItem = newItemInput.value.trim();
+      if (!newItem) {
+        alert("❗ الرجاء كتابة اسم الصنف");
+        return;
+      }
+      const itemRef = ref(db, `menus/${currentVendorId}`);
+      push(itemRef, newItem).then(() => {
+        alert("✅ تم إضافة الصنف بنجاح");
+        newItemInput.value = "";
+        loadMyMenu();
+      });
     }
   </script></body>
 </html>
