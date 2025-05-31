@@ -13,7 +13,7 @@
     h2 {
       color: #c0392b;
     }
-    .order {
+    .order, .menu-item {
       background: #fce4d6;
       border-right: 5px solid #e67e22;
       padding: 10px;
@@ -34,10 +34,12 @@
 </head>
 <body>
   <h2>📊 لوحة تحكم الطلبات</h2>
+  <div id="menuSection"></div>
+  <hr>
   <div id="orderList"></div>
   <div id="debug" class="debug"></div>  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
     import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
 
     const firebaseConfig = {
@@ -62,6 +64,7 @@
         currentVendorId = user.uid;
         debugLog("✅ تسجيل دخول كمدير: " + currentVendorId);
         loadOrders();
+        loadMyMenu();
       } else {
         alert("❌ يجب تسجيل الدخول أولاً كصاحب بوفية");
         window.location.href = "index.html";
@@ -98,6 +101,25 @@
 
         if (!found) {
           orderList.innerHTML = "<p>🚫 لا توجد طلبات موجهة إلى هذه البوفية.</p>";
+        }
+      });
+    }
+
+    function loadMyMenu() {
+      const menuSection = document.getElementById("menuSection");
+      menuSection.innerHTML = "<h3>📋 قائمة الطعام الخاصة بك</h3>";
+
+      get(ref(db, `menus/${currentVendorId}`)).then(snapshot => {
+        if (snapshot.exists()) {
+          const items = snapshot.val();
+          Object.values(items).forEach(item => {
+            const div = document.createElement("div");
+            div.className = "menu-item";
+            div.textContent = "🍴 " + item;
+            menuSection.appendChild(div);
+          });
+        } else {
+          menuSection.innerHTML += "<p>🚫 لا توجد قائمة طعام مسجلة بعد.</p>";
         }
       });
     }
