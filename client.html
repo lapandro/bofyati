@@ -179,18 +179,22 @@
         const order = snapshot.val();
         const box = document.createElement("div");
         box.className = "order";
-        box.innerHTML = `
-          🏪 <strong>بوفية:</strong> ${order.vendor}<br>
-          🍱 <strong>الأصناف:</strong><br>
-          <ul>
-            ${(order.items || []).map(item => `
-              <li>${item.name} × ${item.quantity} ${item.unit} - ${item.price} ريال</li>
-            `).join("")}
-          </ul>
-          📝 <strong>ملاحظات:</strong> ${order.customNote || "-"}<br>
-          ⏰ <small>${new Date(order.time).toLocaleString()}</small>
-        `;
-        ordersDiv.prepend(box);
+
+        get(ref(db, `vendors/${order.vendor}`)).then(vendorSnap => {
+          const vendorName = vendorSnap.exists() ? vendorSnap.val().name : order.vendor;
+          box.innerHTML = `
+            🏪 <strong>بوفية:</strong> ${vendorName}<br>
+            🍱 <strong>الأصناف:</strong><br>
+            <ul>
+              ${(order.items || []).map(item => `
+                <li>${item.name} × ${item.quantity} ${item.unit} - ${item.price} ريال</li>
+              `).join("")}
+            </ul>
+            📝 <strong>ملاحظات:</strong> ${order.customNote || "-"}<br>
+            ⏰ <small>${new Date(order.time).toLocaleString()}</small>
+          `;
+          ordersDiv.prepend(box);
+        });
       });
     }
   </script></body>
