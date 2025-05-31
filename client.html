@@ -23,8 +23,22 @@
       padding: 8px;
       text-align: center;
     }
-    input[type="number"] {
-      width: 60px;
+    .qty-control {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qty-control button {
+      padding: 5px 10px;
+      margin: 0 5px;
+      background-color: #d35400;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .qty-control input {
+      width: 50px;
+      text-align: center;
     }
     textarea, button, select {
       width: 100%;
@@ -37,6 +51,12 @@
       padding: 10px;
       margin: 10px 0;
       border-radius: 5px;
+    }
+    #totalAmount {
+      font-weight: bold;
+      font-size: 18px;
+      margin-top: 15px;
+      color: #27ae60;
     }
   </style>
 </head>
@@ -54,7 +74,7 @@
       </tr>
     </thead>
     <tbody id="menuTable"></tbody>
-  </table>  <h2>✍️ أو اكتب طلبك يدويًا</h2>
+  </table>  <div id="totalAmount">💰 الإجمالي الكلي: 0 ريال</div>  <h2>✍️ أو اكتب طلبك يدويًا</h2>
   <textarea id="customNote" placeholder="مثلاً: شاي حليب بدون سكر"></textarea>
   <button onclick="sendOrder()">📤 إرسال الطلب</button>  <hr>
   <h2>📦 طلباتك السابقة</h2>
@@ -82,6 +102,7 @@
     const vendorSelect = document.getElementById("vendorSelect");
     const menuTable = document.getElementById("menuTable");
     const ordersDiv = document.getElementById("orders");
+    const totalAmount = document.getElementById("totalAmount");
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -121,18 +142,49 @@
           Object.entries(items).forEach(([key, item]) => {
             const row = document.createElement("tr");
             row.innerHTML = `
-              <td><input type="checkbox" data-key="${key}" data-name="${item.name}" data-price="${item.price}" data-unit="${item.unit}" /></td>
+              <td><input type="checkbox" data-key="${key}" data-name="${item.name}" data-price="${item.price}" data-unit="${item.unit}" onchange="calculateTotal()" /></td>
               <td>${item.name}</td>
               <td>${item.unit}</td>
               <td>${item.price} ريال</td>
-              <td><input type="number" min="1" value="1" data-qty="${key}" /></td>
+              <td>
+                <div class="qty-control">
+                  <button onclick="adjustQty('${key}', -1)">-</button>
+                  <input type="number" min="1" value="1" data-qty="${key}" oninput="calculateTotal()" />
+                  <button onclick="adjustQty('${key}', 1)">+</button>
+                </div>
+              </td>
             `;
             menuTable.appendChild(row);
           });
+          calculateTotal();
         } else {
           menuTable.innerHTML = '<tr><td colspan="5">🚫 لا توجد قائمة طعام.</td></tr>';
         }
       });
+    }
+
+    window.adjustQty = function (key, delta) {
+      const input = document.querySelector(`input[data-qty='${key}']`);
+      let value = parseInt(input.value);
+      value = isNaN(value) ? 1 : value + delta;
+      if (value < 1) value = 1;
+      input.value = value;
+      calculateTotal();
+    }
+
+    window.calculateTotal = function () {
+      let total = 0;
+      const selectedItems = Array.from(menuTable.querySelectorAll("input[type=checkbox]:checked"));
+      selectedItems.forEach(input => {
+        const price = parseFloat(input.getAttribute("data-price"));
+        const key = input.getAttribute("data-key");
+        const qtyInput = document.querySelector(`input[data-qty='${key}']`);
+        const quantity = parseInt(qtyInput.value);
+        if (!isNaN(price) && !isNaN(quantity)) {
+          total += price * quantity;
+        }
+      });
+      totalAmount.textContent = `💰 الإجمالي الكلي: ${total} ريال`;
     }
 
     window.sendOrder = function () {
@@ -168,6 +220,7 @@
         alert("✅ تم إرسال الطلب بنجاح");
         document.getElementById("customNote").value = "";
         menuTable.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
+        calculateTotal();
       }).catch(err => {
         alert("❌ حدث خطأ أثناء إرسال الطلب: " + err.message);
       });
