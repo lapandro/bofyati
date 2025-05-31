@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="ar">
+<!DOCTYPE html>
+<html lang="ar">
 <head>
   <meta charset="UTF-8">
   <title>واجهة الزبون - Bofyati</title>
@@ -23,12 +24,12 @@
       padding: 8px;
       text-align: center;
     }
-    .qty-control {
+   .qty-control {
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .qty-control button {
+   .qty-control button {
       padding: 5px 10px;
       margin: 0 5px;
       background-color: #d35400;
@@ -36,7 +37,7 @@
       border: none;
       cursor: pointer;
     }
-    .qty-control input {
+   .qty-control input {
       width: 50px;
       text-align: center;
     }
@@ -46,7 +47,7 @@
       padding: 10px;
       box-sizing: border-box;
     }
-    .order {
+   .order {
       background: #f1f1f1;
       padding: 10px;
       margin: 10px 0;
@@ -62,7 +63,8 @@
 </head>
 <body>
   <h2>🍽️ اختر البوفية</h2>
-  <select id="vendorSelect"></select>  <h2>📋 قائمة الأطعمة</h2>
+  <select id="vendorSelect"></select>
+  <h2>📋 قائمة الأطعمة</h2>
   <table>
     <thead>
       <tr>
@@ -74,11 +76,15 @@
       </tr>
     </thead>
     <tbody id="menuTable"></tbody>
-  </table>  <div id="totalAmount">💰 الإجمالي الكلي: 0 ريال</div>  <h2>✍️ أو اكتب طلبك يدويًا</h2>
+  </table>
+  <div id="totalAmount">💰 الإجمالي الكلي: 0 ريال</div>
+  <h2>✍️ أو اكتب طلبك يدويًا</h2>
   <textarea id="customNote" placeholder="مثلاً: شاي حليب بدون سكر"></textarea>
-  <button onclick="sendOrder()">📤 إرسال الطلب</button>  <hr>
+  <button onclick="sendOrder()">📤 إرسال الطلب</button>
+  <hr>
   <h2>📦 طلباتك السابقة</h2>
-  <div id="orders"></div>  <script type="module">
+  <div id="orders"></div>
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
     import { getDatabase, ref, get, push, onChildAdded } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
@@ -166,7 +172,7 @@
     window.adjustQty = function (key, delta) {
       const input = document.querySelector(`input[data-qty='${key}']`);
       let value = parseInt(input.value);
-      value = isNaN(value) ? 1 : value + delta;
+      value = isNaN(value)? 1 : value + delta;
       if (value < 1) value = 1;
       input.value = value;
       calculateTotal();
@@ -180,7 +186,7 @@
         const key = input.getAttribute("data-key");
         const qtyInput = document.querySelector(`input[data-qty='${key}']`);
         const quantity = parseInt(qtyInput.value);
-        if (!isNaN(price) && !isNaN(quantity)) {
+        if (!isNaN(price) &&!isNaN(quantity)) {
           total += price * quantity;
         }
       });
@@ -189,7 +195,7 @@
 
     window.sendOrder = function () {
       const selectedItems = Array.from(menuTable.querySelectorAll("input[type=checkbox]:checked"))
-        .map(input => {
+       .map(input => {
           const key = input.getAttribute("data-key");
           const name = input.getAttribute("data-name");
           const price = parseFloat(input.getAttribute("data-price"));
@@ -198,7 +204,6 @@
           const quantity = parseInt(quantityInput.value);
           return { name, price, unit, quantity };
         });
-
       const customNote = document.getElementById("customNote").value;
 
       if (!selectedVendorId) {
@@ -206,7 +211,7 @@
         return;
       }
 
-      if (selectedItems.length === 0 && !customNote.trim()) {
+      if (selectedItems.length === 0 &&!customNote.trim()) {
         alert("❗ الرجاء اختيار صنف أو كتابة ملاحظة الطلب");
         return;
       }
@@ -234,21 +239,23 @@
         box.className = "order";
 
         get(ref(db, `vendors/${order.vendor}`)).then(vendorSnap => {
-          const vendorName = vendorSnap.exists() ? vendorSnap.val().name : order.vendor;
+          const vendorName = vendorSnap.exists()? vendorSnap.val().name : order.vendor;
           box.innerHTML = `
             🏪 <strong>بوفية:</strong> ${vendorName}<br>
             🍱 <strong>الأصناف:</strong><br>
             <ul>
-              ${(order.items || []).map(item => `
+              ${(order.items ||).map(item => `
                 <li>${item.name} × ${item.quantity} ${item.unit} - ${item.price} ريال</li>
               `).join("")}
             </ul>
-            📝 <strong>ملاحظات:</strong> ${order.customNote || "-"}<br>
+            📝 <strong>ملاحظات:</strong> ${order.customNote |
+| "-"}<br>
             ⏰ <small>${new Date(order.time).toLocaleString()}</small>
           `;
           ordersDiv.prepend(box);
         });
       });
     }
-  </script></body>
+  </script>
+</body>
 </html>
